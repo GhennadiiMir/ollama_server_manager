@@ -48,6 +48,42 @@ A streamlined web interface for managing Ollama models across multiple servers. 
    http://localhost:9292
    ```
 
+### 🐳 Docker Deployment (Recommended)
+
+Run with Docker for easy deployment and automatic restarts:
+
+**One-liner command:**
+
+```bash
+docker-compose up -d
+```
+
+**Alternative Docker run command:**
+
+```bash
+docker run -d --name ollama-server-manager -p 9292:9292 --restart unless-stopped $(docker build -q .)
+```
+
+**Features:**
+
+- ✅ Automatic restart on server reboot (`restart: unless-stopped`)
+- ✅ Health checks included
+- ✅ Optimized for production use
+- ✅ No Ruby installation required on host
+
+**Docker Management:**
+
+```bash
+# View logs
+docker-compose logs -f
+
+# Stop the service
+docker-compose down
+
+# Rebuild and restart
+docker-compose up -d --build
+```
+
 ## 🎯 How to Use
 
 1. **Add Your Servers**: Enter Ollama server URLs (e.g., `http://localhost:11434`, `http://server2:11434`)

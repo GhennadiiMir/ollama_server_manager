@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  ollama-manager:
+    build: .
+    container_name: ollama-server-manager
+    ports:
+      - "9292:9292"
+    restart: unless-stopped
+    environment:
+      - PORT=9292
+      - PUMA_THREADS=5
+      - WEB_CONCURRENCY=2
+    volumes:
+      # Optional: persist any local data if needed
+      - ./data:/app/data
+    networks:
+      - ollama-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9292/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  ollama-network:
+    driver: bridge
