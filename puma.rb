@@ -1,13 +1,12 @@
 # Puma configuration file
 
-# Port to listen on and bind to all interfaces for Docker containers
-port ENV.fetch('PORT', 9292)
+# Bind to all interfaces for Docker containers
 bind "tcp://0.0.0.0:#{ENV.fetch('PORT', 9292)}"
 
 # Number of worker processes
-# Set to 0 for single mode (development)
+# Set to 0 for single mode (development) to avoid port conflicts
 # Set to number of CPU cores for production
-workers ENV.fetch('WEB_CONCURRENCY', 0)
+workers 0
 
 # Number of threads per worker
 threads_count = ENV.fetch('PUMA_THREADS', 5).to_i
