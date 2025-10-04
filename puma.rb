@@ -1,7 +1,8 @@
 # Puma configuration file
 
-# Port to listen on
+# Port to listen on and bind to all interfaces for Docker containers
 port ENV.fetch('PORT', 9292)
+bind "tcp://0.0.0.0:#{ENV.fetch('PORT', 9292)}"
 
 # Number of worker processes
 # Set to 0 for single mode (development)
