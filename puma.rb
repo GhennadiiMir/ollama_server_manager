@@ -22,9 +22,13 @@ plugin :tmp_restart
 environment ENV.fetch('RACK_ENV', 'development')
 
 # Logging
-stdout_redirect ENV.fetch('PUMA_STDOUT', 'log/puma.stdout.log'), 
-                ENV.fetch('PUMA_STDERR', 'log/puma.stderr.log'), 
-                true unless ENV['RACK_ENV'] == 'development'
+unless ENV['RACK_ENV'] == 'development'
+  stdout_redirect ENV.fetch('PUMA_STDOUT', 'log/puma.stdout.log'), 
+                  ENV.fetch('PUMA_STDERR', 'log/puma.stderr.log'), 
+                  true
+end
 
-# Pidfile location
-pidfile ENV.fetch('PIDFILE', 'tmp/pids/puma.pid') unless ENV['RACK_ENV'] == 'development'
+# Pidfile location - only set in production
+unless ENV['RACK_ENV'] == 'development'
+  pidfile ENV.fetch('PIDFILE', 'tmp/pids/puma.pid')
+end
