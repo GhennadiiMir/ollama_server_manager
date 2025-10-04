@@ -1,0 +1,620 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Ollama Server Manager</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      padding: 20px;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+      background: white;
+      padding: 30px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    h1 {
+      margin-bottom: 30px;
+      color: #2c3e50;
+    }
+
+    .section {
+      margin-bottom: 30px;
+    }
+
+    .section-title {
+      font-size: 18px;
+      font-weight: 600;
+      margin-bottom: 15px;
+      color: #34495e;
+      border-bottom: 2px solid #3498db;
+      padding-bottom: 8px;
+    }
+
+    .server-management {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .server-item {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 15px;
+      background: #ecf0f1;
+      border-radius: 5px;
+    }
+
+    .server-url {
+      font-family: monospace;
+      font-size: 14px;
+    }
+
+    .add-server {
+      display: flex;
+      gap: 10px;
+      margin-top: 15px;
+    }
+
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      border: 1px solid #ddd;
+      border-radius: 5px;
+      font-size: 14px;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .btn-primary {
+      background: #3498db;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #2980b9;
+    }
+
+    .btn-danger {
+      background: #e74c3c;
+      color: white;
+    }
+
+    .btn-danger:hover {
+      background: #c0392b;
+    }
+
+    .btn-success {
+      background: #2ecc71;
+      color: white;
+    }
+
+    .btn-success:hover {
+      background: #27ae60;
+    }
+
+    .btn-small {
+      padding: 5px 10px;
+      font-size: 12px;
+    }
+
+    .model-add {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .table-container {
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 15px;
+    }
+
+    th,
+    td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid #ddd;
+    }
+
+    th {
+      background: #34495e;
+      color: white;
+      font-weight: 600;
+      position: sticky;
+      top: 0;
+    }
+
+    tr:hover {
+      background: #f8f9fa;
+    }
+
+    .status-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-dot {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+    }
+
+    .status-installed {
+      background: #2ecc71;
+    }
+
+    .status-not-installed {
+      background: #95a5a6;
+    }
+
+    .status-loading {
+      background: #f39c12;
+      animation: pulse 1.5s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+
+      0%,
+      100% {
+        opacity: 1;
+      }
+
+      50% {
+        opacity: 0.5;
+      }
+    }
+
+    .action-buttons {
+      display: flex;
+      gap: 5px;
+    }
+
+    .refresh-btn {
+      float: right;
+      margin-bottom: 10px;
+    }
+
+    .error-message {
+      color: #e74c3c;
+      font-size: 12px;
+      margin-top: 5px;
+    }
+
+    .info-message {
+      background: #d4edda;
+      border: 1px solid #c3e6cb;
+      color: #155724;
+      padding: 10px;
+      border-radius: 5px;
+      margin-bottom: 15px;
+    }
+
+    .loading {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid #f3f3f3;
+      border-top: 2px solid #3498db;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      0% {
+        transform: rotate(0deg);
+      }
+
+      100% {
+        transform: rotate(360deg);
+      }
+    }
+
+    .model-name {
+      font-family: monospace;
+      font-weight: 500;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <h1>🦙 Ollama Server Manager</h1>
+
+    <!-- Server Management Section -->
+    <div class="section">
+      <div class="section-title">Servers</div>
+      <div class="server-management" id="serverList"></div>
+      <div class="add-server">
+        <input type="text" id="newServerUrl" placeholder="Enter server URL (e.g., http://localhost:11434)"
+          value="http://localhost:11434">
+        <button class="btn-primary" onclick="addServer()">Add Server</button>
+      </div>
+    </div>
+
+    <!-- Model Management Section -->
+    <div class="section">
+      <div class="section-title">Models
+        <a href="https://ollama.com/library" target="_blank"
+          style="font-size: 14px; margin-left: 15px; color: #3498db;">
+          Browse Ollama Library ↗
+        </a>
+      </div>
+      <div class="model-add">
+        <input type="text" id="newModelName"
+          placeholder="Enter model name with size (e.g., llama3.2:3b, qwen2.5-coder:7b)">
+        <button class="btn-primary" onclick="addModel()">Add Model</button>
+        <button class="btn-success refresh-btn" onclick="refreshAll()">🔄 Refresh All</button>
+      </div>
+
+      <div class="table-container">
+        <table id="modelTable">
+          <thead id="tableHeader"></thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Data storage
+    let servers = [];
+    let models = [];
+    let serverModels = {}; // stores installed models per server
+
+    // Load data from localStorage on startup
+    function loadData() {
+      const savedServers = localStorage.getItem('ollama-servers');
+      const savedModels = localStorage.getItem('ollama-models');
+
+      if (savedServers) {
+        servers = JSON.parse(savedServers);
+      } else {
+        // Default server
+        servers = ['http://localhost:11434'];
+      }
+
+      if (savedModels) {
+        models = JSON.parse(savedModels);
+      }
+
+      saveData();
+    }
+
+    // Save data to localStorage
+    function saveData() {
+      localStorage.setItem('ollama-servers', JSON.stringify(servers));
+      localStorage.setItem('ollama-models', JSON.stringify(models));
+    }
+
+    // Add a new server
+    function addServer() {
+      const input = document.getElementById('newServerUrl');
+      let url = input.value.trim();
+
+      if (!url) return;
+
+      // Ensure URL format
+      if (!url.startsWith('http://') && !url.startsWith('https://')) {
+        url = 'http://' + url;
+      }
+
+      // Remove trailing slash
+      url = url.replace(/\/$/, '');
+
+      if (!servers.includes(url)) {
+        servers.push(url);
+        saveData();
+        input.value = '';
+        renderServers();
+        renderTable();
+        fetchServerModels(url);
+      }
+    }
+
+    // Remove a server
+    function removeServer(url) {
+      servers = servers.filter(s => s !== url);
+      delete serverModels[url];
+      saveData();
+      renderServers();
+      renderTable();
+    }
+
+    // Add a new model
+    function addModel() {
+      const input = document.getElementById('newModelName');
+      const modelName = input.value.trim();
+
+      if (!modelName) return;
+
+      if (!models.includes(modelName)) {
+        models.push(modelName);
+        saveData();
+        input.value = '';
+        renderTable();
+      }
+    }
+
+    // Remove a model
+    function removeModel(modelName) {
+      models = models.filter(m => m !== modelName);
+      saveData();
+      renderTable();
+    }
+
+    // Render server list
+    function renderServers() {
+      const serverList = document.getElementById('serverList');
+      serverList.innerHTML = servers.map(server => `
+                <div class="server-item">
+                    <span class="server-url">${server}</span>
+                    <button class="btn-danger btn-small" onclick="removeServer('${server}')">Remove</button>
+                </div>
+            `).join('');
+    }
+
+    // Fetch installed models from a server
+    async function fetchServerModels(serverUrl) {
+      try {
+        console.log(`Fetching models from ${serverUrl}...`);
+        const response = await fetch('/api/proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            server_url: serverUrl,
+            endpoint: '/api/tags',
+            method: 'GET'
+          })
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch');
+
+        const data = await response.json();
+        console.log(`Received data from ${serverUrl}:`, data);
+        const installedModels = data.models ? data.models.map(m => m.name) : [];
+
+        serverModels[serverUrl] = installedModels;
+
+        // Add discovered models to the list if not already present
+        let newModelsFound = 0;
+        installedModels.forEach(modelName => {
+          if (!models.includes(modelName)) {
+            models.push(modelName);
+            newModelsFound++;
+            console.log(`Added new model: ${modelName}`);
+          }
+        });
+
+        if (newModelsFound > 0) {
+          console.log(`Found ${newModelsFound} new models from ${serverUrl}`);
+        }
+
+        saveData();
+        return true;
+      } catch (error) {
+        console.error(`Error fetching models from ${serverUrl}:`, error);
+        serverModels[serverUrl] = [];
+        return false;
+      }
+    }
+
+    // Pull a model to a server
+    async function pullModel(serverUrl, modelName, buttonElement) {
+      buttonElement.disabled = true;
+      buttonElement.innerHTML = '<span class="loading"></span>';
+
+      try {
+        const response = await fetch('/api/proxy/stream', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            server_url: serverUrl,
+            endpoint: '/api/pull',
+            body: { name: modelName }
+          })
+        });
+
+        if (!response.ok) throw new Error('Pull failed');
+
+        // Read the streaming response
+        const reader = response.body.getReader();
+        const decoder = new TextDecoder();
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          const chunk = decoder.decode(value);
+          const lines = chunk.split('\n').filter(line => line.trim());
+
+          for (const line of lines) {
+            try {
+              const data = JSON.parse(line);
+              if (data.status) {
+                buttonElement.textContent = data.status.substring(0, 20);
+              }
+            } catch (e) {
+              // Ignore JSON parse errors
+            }
+          }
+        }
+
+        await fetchServerModels(serverUrl);
+      } catch (error) {
+        console.error('Error pulling model:', error);
+        alert(`Error pulling model: ${error.message}`);
+        renderTable();
+      }
+    }
+
+    // Delete a model from a server
+    async function deleteModel(serverUrl, modelName, buttonElement) {
+      if (!confirm(`Delete ${modelName} from ${serverUrl}?`)) return;
+
+      buttonElement.disabled = true;
+      buttonElement.innerHTML = '<span class="loading"></span>';
+
+      try {
+        const response = await fetch('/api/proxy', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            server_url: serverUrl,
+            endpoint: '/api/delete',
+            method: 'DELETE',
+            body: { name: modelName }
+          })
+        });
+
+        if (!response.ok) throw new Error('Delete failed');
+
+        await fetchServerModels(serverUrl);
+      } catch (error) {
+        console.error('Error deleting model:', error);
+        alert(`Error deleting model: ${error.message}`);
+        renderTable();
+      }
+    }
+
+    // Render the main table
+    function renderTable() {
+      const tableHeader = document.getElementById('tableHeader');
+      const tableBody = document.getElementById('tableBody');
+
+      // Build header
+      let headerHTML = '<tr><th>Model Name</th>';
+      servers.forEach(server => {
+        const serverName = server.replace('http://', '').replace('https://', '');
+        headerHTML += `<th>${serverName}</th>`;
+      });
+      headerHTML += '<th>Actions</th></tr>';
+      tableHeader.innerHTML = headerHTML;
+
+      // Build body
+      let bodyHTML = '';
+      models.forEach(model => {
+        bodyHTML += `<tr><td class="model-name">${model}</td>`;
+
+        servers.forEach(server => {
+          const installed = serverModels[server] && serverModels[server].includes(model);
+          bodyHTML += '<td>';
+
+          if (installed) {
+            bodyHTML += `
+                            <div class="status-indicator">
+                                <span class="status-dot status-installed"></span>
+                                <div class="action-buttons">
+                                    <button class="btn-danger btn-small" onclick="deleteModel('${server}', '${model}', this)">Remove</button>
+                                </div>
+                            </div>
+                        `;
+          } else {
+            bodyHTML += `
+                            <div class="status-indicator">
+                                <span class="status-dot status-not-installed"></span>
+                                <div class="action-buttons">
+                                    <button class="btn-success btn-small" onclick="pullModel('${server}', '${model}', this)">Pull</button>
+                                </div>
+                            </div>
+                        `;
+          }
+
+          bodyHTML += '</td>';
+        });
+
+        bodyHTML += `<td><button class="btn-danger btn-small" onclick="removeModel('${model}')">Delete from List</button></td>`;
+        bodyHTML += '</tr>';
+      });
+
+      tableBody.innerHTML = bodyHTML;
+    }
+
+    // Refresh all server data
+    async function refreshAll() {
+      const refreshBtn = document.querySelector('.refresh-btn');
+      refreshBtn.disabled = true;
+      refreshBtn.innerHTML = '<span class="loading"></span> Refreshing...';
+
+      console.log('Starting refresh for all servers:', servers);
+      const promises = servers.map(server => fetchServerModels(server));
+      const results = await Promise.all(promises);
+
+      console.log('Refresh complete. Results:', results);
+      console.log('Current models list:', models);
+      console.log('Server models:', serverModels);
+
+      // Ensure data is saved and table is re-rendered
+      saveData();
+      renderTable();
+
+      refreshBtn.disabled = false;
+      refreshBtn.innerHTML = '🔄 Refresh All';
+    }
+
+    // Initialize the app
+    async function init() {
+      loadData();
+      renderServers();
+      renderTable();
+
+      // Add enter key support for inputs
+      document.getElementById('newServerUrl').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addServer();
+      });
+
+      document.getElementById('newModelName').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') addModel();
+      });
+
+      // Automatically refresh all servers on page load
+      if (servers.length > 0) {
+        await refreshAll();
+      }
+    }
+
+    // Start the app
+    init();
+  </script>
+</body>
+
+</html>
