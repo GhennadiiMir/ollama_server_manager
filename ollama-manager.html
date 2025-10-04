@@ -249,6 +249,18 @@
       font-family: monospace;
       font-weight: 500;
     }
+
+    .model-name a {
+      color: #2c3e50;
+      text-decoration: none;
+      font-family: inherit;
+      font-weight: inherit;
+    }
+
+    .model-name a:hover {
+      color: #3498db;
+      text-decoration: underline;
+    }
   </style>
 </head>
 
@@ -516,6 +528,13 @@
       }
     }
 
+    // Generate Ollama library URL for a model
+    function getOllamaLibraryUrl(modelName) {
+      // Extract base model name (remove size tags like :3b, :7b, :16b, etc.)
+      const baseModel = modelName.split(':')[0];
+      return `https://ollama.com/library/${baseModel}`;
+    }
+
     // Render the main table
     function renderTable() {
       const tableHeader = document.getElementById('tableHeader');
@@ -534,7 +553,8 @@
       let bodyHTML = '';
       const sortedModels = [...models].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
       sortedModels.forEach(model => {
-        bodyHTML += `<tr><td class="model-name">${model}</td>`;
+        const ollamaUrl = getOllamaLibraryUrl(model);
+        bodyHTML += `<tr><td class="model-name"><a href="${ollamaUrl}" target="_blank">${model}</a></td>`;
 
         servers.forEach(server => {
           const installed = serverModels[server] && serverModels[server].includes(model);
