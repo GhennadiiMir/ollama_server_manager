@@ -22,6 +22,9 @@ RUN bundle lock --add-platform aarch64-linux && \
 # Copy application code
 COPY . .
 
+# Create necessary directories for Puma
+RUN mkdir -p tmp/pids log
+
 # Create a non-root user for security
 RUN groupadd -r appuser && useradd -r -g appuser appuser
 RUN chown -R appuser:appuser /app

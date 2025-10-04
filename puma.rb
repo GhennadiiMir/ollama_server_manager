@@ -15,8 +15,10 @@ threads threads_count, threads_count
 # Preload the application for better performance in production
 preload_app!
 
-# Allow Puma to be restarted by `bin/rails restart` command
-plugin :tmp_restart
+# Allow Puma to be restarted by `bin/rails restart` command (only in production)
+if ENV['RACK_ENV'] == 'production'
+  plugin :tmp_restart
+end
 
 # Specify the environment
 environment ENV.fetch('RACK_ENV', 'development')
