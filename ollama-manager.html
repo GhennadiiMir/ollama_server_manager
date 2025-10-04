@@ -530,9 +530,10 @@
       headerHTML += '<th>Actions</th></tr>';
       tableHeader.innerHTML = headerHTML;
 
-      // Build body
+      // Build body - sort models by name before rendering
       let bodyHTML = '';
-      models.forEach(model => {
+      const sortedModels = [...models].sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+      sortedModels.forEach(model => {
         bodyHTML += `<tr><td class="model-name">${model}</td>`;
 
         servers.forEach(server => {
