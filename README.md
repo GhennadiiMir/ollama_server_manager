@@ -25,7 +25,7 @@ A streamlined web interface for managing Ollama models across multiple servers. 
 1. **Clone and install dependencies:**
 
    ```bash
-   git clone <repository-url>
+   git clone git@github.com:GhennadiiMir/ollama_server_manager.git
    cd ollama_server_manager
    bundle install
    ```
