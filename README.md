@@ -55,7 +55,7 @@ Run with Docker for easy deployment and automatic restarts:
 **One-liner command:**
 
 ```bash
-docker-compose up -d
+docker compose up -d
 ```
 
 **Alternative Docker run command:**
@@ -75,13 +75,13 @@ docker run -d --name ollama-server-manager -p 9292:9292 --restart unless-stopped
 
 ```bash
 # View logs
-docker-compose logs -f
+docker compose logs -f
 
 # Stop the service
-docker-compose down
+docker compose down
 
 # Rebuild and restart
-docker-compose up -d --build
+docker compose up -d --build
 ```
 
 ## 🎯 How to Use

@@ -13,8 +13,9 @@ RUN apt-get update && apt-get install -y \
 # Copy Gemfile and Gemfile.lock
 COPY Gemfile Gemfile.lock ./
 
-# Install Ruby dependencies
-RUN bundle config set --local deployment 'true' && \
+# Add Linux platform to Gemfile.lock and install Ruby dependencies
+RUN bundle lock --add-platform aarch64-linux && \
+  bundle config set --local deployment 'true' && \
   bundle config set --local without 'development test' && \
   bundle install
 
