@@ -67,6 +67,19 @@
       font-size: 14px;
     }
 
+    .server-version {
+      font-size: 12px;
+      color: #7f8c8d;
+      font-style: italic;
+      margin-left: 8px;
+    }
+
+    .server-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+
     .add-server {
       display: flex;
       gap: 10px;
@@ -308,6 +321,7 @@
     let servers = [];
     let models = [];
     let serverModels = {}; // stores installed models per server
+    let serverVersions = {}; // stores Ollama version per server
 
     // Load data from localStorage on startup
     function loadData() {
@@ -356,6 +370,7 @@
         renderServers();
         renderTable();
         fetchServerModels(url);
+        fetchServerVersion(url);
       }
     }
 
@@ -363,6 +378,7 @@
     function removeServer(url) {
       servers = servers.filter(s => s !== url);
       delete serverModels[url];
+      delete serverVersions[url];
       saveData();
       renderServers();
       renderTable();
@@ -393,12 +409,18 @@
     // Render server list
     function renderServers() {
       const serverList = document.getElementById('serverList');
-      serverList.innerHTML = servers.map(server => `
+      serverList.innerHTML = servers.map(server => {
+        const version = serverVersions[server] || 'Loading...';
+        return `
                 <div class="server-item">
-                    <span class="server-url">${server}</span>
+                    <div class="server-info">
+                        <span class="server-url">${server}</span>
+                        <span class="server-version">Ollama v${version}</span>
+                    </div>
                     <button class="btn-danger btn-small" onclick="removeServer('${server}')">Remove</button>
                 </div>
-            `).join('');
+            `;
+      }).join('');
     }
 
     // Fetch installed models from a server
@@ -535,6 +557,34 @@
       return `https://ollama.com/library/${baseModel}`;
     }
 
+    // Fetch Ollama version from a server
+    async function fetchServerVersion(serverUrl) {
+      try {
+        console.log(`Fetching version from ${serverUrl}...`);
+        const response = await fetch('/api/proxy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            server_url: serverUrl,
+            endpoint: '/api/version',
+            method: 'GET'
+          })
+        });
+
+        if (!response.ok) throw new Error('Failed to fetch version');
+
+        const data = await response.json();
+        const version = data.version || 'Unknown';
+        serverVersions[serverUrl] = version;
+        console.log(`Version for ${serverUrl}: ${version}`);
+        return version;
+      } catch (error) {
+        console.error(`Error fetching version from ${serverUrl}:`, error);
+        serverVersions[serverUrl] = 'Offline';
+        return 'Offline';
+      }
+    }
+
     // Render the main table
     function renderTable() {
       const tableHeader = document.getElementById('tableHeader');
@@ -597,15 +647,21 @@
       refreshBtn.innerHTML = '<span class="loading"></span> Refreshing...';
 
       console.log('Starting refresh for all servers:', servers);
-      const promises = servers.map(server => fetchServerModels(server));
-      const results = await Promise.all(promises);
+      const modelPromises = servers.map(server => fetchServerModels(server));
+      const versionPromises = servers.map(server => fetchServerVersion(server));
+      const [modelResults, versionResults] = await Promise.all([
+        Promise.all(modelPromises),
+        Promise.all(versionPromises)
+      ]);
 
-      console.log('Refresh complete. Results:', results);
+      console.log('Refresh complete. Models:', modelResults, 'Versions:', versionResults);
       console.log('Current models list:', models);
       console.log('Server models:', serverModels);
+      console.log('Server versions:', serverVersions);
 
-      // Ensure data is saved and table is re-rendered
+      // Ensure data is saved and UI is re-rendered
       saveData();
+      renderServers();
       renderTable();
 
       refreshBtn.disabled = false;
