@@ -6,7 +6,7 @@ bind "tcp://0.0.0.0:#{ENV.fetch('PORT', 9292)}"
 # Number of worker processes
 # Set to 0 for single mode (development) to avoid port conflicts
 # Set to number of CPU cores for production
-workers 0
+workers 6
 
 # Number of threads per worker
 threads_count = ENV.fetch('PUMA_THREADS', 5).to_i
@@ -21,16 +21,16 @@ if ENV['RACK_ENV'] == 'production'
 end
 
 # Specify the environment
-environment ENV.fetch('RACK_ENV', 'development')
+environment ENV.fetch('RACK_ENV', 'production')
 
 # Logging
-unless ENV['RACK_ENV'] == 'development'
+unless ENV['RACK_ENV'] == 'production'
   stdout_redirect ENV.fetch('PUMA_STDOUT', 'log/puma.stdout.log'), 
                   ENV.fetch('PUMA_STDERR', 'log/puma.stderr.log'), 
                   true
 end
 
 # Pidfile location - only set in production
-unless ENV['RACK_ENV'] == 'development'
+unless ENV['RACK_ENV'] == 'production'
   pidfile ENV.fetch('PIDFILE', 'tmp/pids/puma.pid')
 end
