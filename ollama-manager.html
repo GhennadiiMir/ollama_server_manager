@@ -176,41 +176,61 @@
       background: #f8f9fa;
     }
 
-    .status-indicator {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
+    .btn-model-status {
+      min-width: 105px;
+      padding: 5px 10px;
+      font-size: 12px;
+      font-weight: 500;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: all 0.18s;
+      background: transparent;
+      letter-spacing: 0.01em;
     }
 
-    .status-dot {
-      width: 10px;
-      height: 10px;
-      border-radius: 50%;
+    .btn-model-status .status-hover {
+      display: none;
     }
 
-    .status-installed {
-      background: #2ecc71;
+    .btn-model-status:hover .status-default {
+      display: none;
     }
 
-    .status-not-installed {
-      background: #95a5a6;
+    .btn-model-status:hover .status-hover {
+      display: inline;
+    }
+
+    .btn-model-present {
+      border: 1.5px solid #27ae60;
+      color: #27ae60;
+    }
+
+    .btn-model-present:hover {
+      background: #e74c3c;
+      border-color: #e74c3c;
+      color: white;
+    }
+
+    .btn-model-absent {
+      border: 1.5px solid #e74c3c;
+      color: #e74c3c;
+    }
+
+    .btn-model-absent:hover {
+      background: #27ae60;
+      border-color: #27ae60;
+      color: white;
     }
 
     .status-loading {
-      background: #f39c12;
-      animation: pulse 1.5s ease-in-out infinite;
+      border: 1.5px solid #f39c12;
+      color: #f39c12;
+      animation: pulse-border 1.5s ease-in-out infinite;
     }
 
-    @keyframes pulse {
-
-      0%,
-      100% {
-        opacity: 1;
-      }
-
-      50% {
-        opacity: 0.5;
-      }
+    @keyframes pulse-border {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
     }
 
     .action-buttons {
@@ -471,6 +491,8 @@
     // Pull a model to a server
     async function pullModel(serverUrl, modelName, buttonElement) {
       buttonElement.disabled = true;
+      buttonElement.classList.add('status-loading');
+      buttonElement.classList.remove('btn-model-absent');
       buttonElement.innerHTML = '<span class="loading"></span>';
 
       try {
@@ -524,6 +546,8 @@
       if (!confirm(`Delete ${modelName} from ${serverUrl}?`)) return;
 
       buttonElement.disabled = true;
+      buttonElement.classList.add('status-loading');
+      buttonElement.classList.remove('btn-model-present');
       buttonElement.innerHTML = '<span class="loading"></span>';
 
       try {
@@ -548,7 +572,9 @@
         console.error('Error deleting model:', error);
         alert(`Error deleting model: ${error.message}`);
         buttonElement.disabled = false;
-        buttonElement.innerHTML = 'Remove';
+        buttonElement.classList.remove('status-loading');
+        buttonElement.classList.add('btn-model-present');
+        buttonElement.innerHTML = '<span class="status-default">✓ Pulled &nbsp;×</span><span class="status-hover">Remove</span>';
       }
     }
 
@@ -613,23 +639,9 @@
           bodyHTML += '<td>';
 
           if (installed) {
-            bodyHTML += `
-                            <div class="status-indicator">
-                                <span class="status-dot status-installed"></span>
-                                <div class="action-buttons">
-                                    <button class="btn-danger btn-small" onclick="deleteModel('${server}', '${model}', this)">Remove</button>
-                                </div>
-                            </div>
-                        `;
+            bodyHTML += `<button class="btn-model-status btn-model-present" onclick="deleteModel('${server}', '${model}', this)"><span class="status-default">✓ Pulled &nbsp;×</span><span class="status-hover">Remove</span></button>`;
           } else {
-            bodyHTML += `
-                            <div class="status-indicator">
-                                <span class="status-dot status-not-installed"></span>
-                                <div class="action-buttons">
-                                    <button class="btn-success btn-small" onclick="pullModel('${server}', '${model}', this)">Pull</button>
-                                </div>
-                            </div>
-                        `;
+            bodyHTML += `<button class="btn-model-status btn-model-absent" onclick="pullModel('${server}', '${model}', this)"><span class="status-default">↓ Not pulled</span><span class="status-hover">Pull</span></button>`;
           }
 
           bodyHTML += '</td>';
