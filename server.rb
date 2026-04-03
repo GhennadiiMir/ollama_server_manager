@@ -7,6 +7,15 @@ class OllamaManagerApp < Roda
   plugin :streaming
   plugin :json
 
+  # On Docker Desktop (macOS/Windows), localhost inside the container refers to
+  # the container itself, not the host machine. Set LOCALHOST_ALIAS=host.docker.internal
+  # to transparently rewrite localhost/127.0.0.1 in proxied server URLs.
+  def self.resolve_server_url(url)
+    alias_host = ENV['LOCALHOST_ALIAS']
+    return url unless alias_host && !alias_host.empty?
+    url.gsub(/\blocalhost\b|\b127\.0\.0\.1\b/, alias_host)
+  end
+
   route do |r|
     # Serve the main HTML file at root
     r.root do
@@ -21,7 +30,7 @@ class OllamaManagerApp < Roda
         r.on 'stream' do
           r.post do
             data = JSON.parse(r.body.read)
-            server_url = data['server_url']
+            server_url = OllamaManagerApp.resolve_server_url(data['server_url'])
             endpoint = data['endpoint']
             body = data['body']
 
@@ -50,7 +59,7 @@ class OllamaManagerApp < Roda
         # POST /api/proxy - proxy regular requests to Ollama servers
         r.post do
           data = JSON.parse(r.body.read)
-          server_url = data['server_url']
+          server_url = OllamaManagerApp.resolve_server_url(data['server_url'])
           endpoint = data['endpoint']
           method = data['method'] || 'GET'
           body = data['body']

@@ -24,6 +24,9 @@ services:
       - PORT=9292
       - PUMA_THREADS=5
       - WEB_CONCURRENCY=2
+      # Rewrite localhost to host.docker.internal so the proxy can reach
+      # Ollama running on the macOS host from inside the Docker Desktop VM.
+      - LOCALHOST_ALIAS=host.docker.internal
     volumes:
       - ./data:/app/data
     # Ensures host.docker.internal resolves to the host machine
