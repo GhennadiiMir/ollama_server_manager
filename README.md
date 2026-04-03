@@ -12,6 +12,7 @@ A streamlined web interface for managing Ollama models across multiple servers. 
 - **Real-Time Discovery**: Automatically discover installed models on your servers
 - **Persistent Configuration**: Your server list is saved locally for convenience
 - **CORS-Free**: Built-in proxy eliminates browser CORS restrictions
+- **Host Network Aware**: Resolves any hostname the host machine can — Tailscale, VPN, mDNS, custom `/etc/hosts`
 
 ## 🚀 Quick Start
 
@@ -23,7 +24,7 @@ Run with Docker for easy deployment and automatic restarts. **Supports multiple 
 - ✅ `aarch64` / `arm64` (ARM 64-bit) - Raspberry Pi, AWS Graviton, Apple Silicon Linux
 - ✅ `ruby` platform fallback for maximum compatibility
 
-**One-liner setup:**
+#### Linux
 
 ```bash
 git clone https://github.com/GhennadiiMir/ollama_server_manager.git
@@ -31,11 +32,30 @@ cd ollama_server_manager
 docker compose up -d
 ```
 
+Uses `network_mode: host` — the container shares the host's full network stack, so any Ollama server reachable from the host (by hostname, IP, VPN, Tailscale, mDNS, etc.) works out of the box.
+
+#### macOS / Windows (Docker Desktop)
+
+```bash
+git clone https://github.com/GhennadiiMir/ollama_server_manager.git
+cd ollama_server_manager
+docker compose -f docker-compose.macos.yml up -d
+```
+
+Uses standard port mapping. Server URL tips for Docker Desktop:
+
+| Ollama location | URL to use |
+|---|---|
+| Same machine as the manager | `http://host.docker.internal:11434` |
+| Another machine on your network | `http://192.168.1.100:11434` (use IP) |
+| VPN / Tailscale remote host | Use the IP address of that host |
+
 **Docker Management:**
 
 ```bash
 # View logs
-docker compose logs -f
+docker compose logs -f          # Linux
+docker compose -f docker-compose.macos.yml logs -f   # macOS/Windows
 
 # Stop the service
 docker compose down
@@ -109,6 +129,8 @@ This tool consists of:
 
 The proxy design eliminates CORS issues and provides a seamless experience when managing remote Ollama servers.
 
+The container runs with `network_mode: host`, sharing the host machine's full network stack. This means any server URL the host can reach — by hostname, IP, Tailscale name, VPN address, or mDNS — works without any extra configuration.
+
 ## 🔧 Troubleshooting
 
 **Connection Issues:**
@@ -116,6 +138,7 @@ The proxy design eliminates CORS issues and provides a seamless experience when 
 - Ensure your Ollama servers are running and accessible
 - Verify server URLs and ports are correct
 - Check firewall settings for remote servers
+- If hostnames don't resolve, make sure they are resolvable on the **host machine** running the manager (not just in the browser) — the proxy inherits the host's DNS
 
 **Models Not Appearing:**
 

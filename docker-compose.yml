@@ -2,8 +2,13 @@ services:
   ollama-manager:
     build: .
     container_name: ollama-server-manager
-    ports:
-      - "9292:9292"
+    # network_mode: host shares the host's full network stack with the container.
+    # This means the proxy can reach any Ollama server the host machine can reach —
+    # by hostname, mDNS, VPN, Tailscale, /etc/hosts, or IP — without any special
+    # configuration. The app is available on port 9292 of the host directly.
+    # Note: network_mode: host is a Linux feature. On macOS/Windows with Docker Desktop,
+    # replace with 'ports: ["9292:9292"]' and ensure your servers are reachable by IP.
+    network_mode: host
     restart: unless-stopped
     environment:
       - PORT=9292
@@ -12,15 +17,9 @@ services:
     volumes:
       # Optional: persist any local data if needed
       - ./data:/app/data
-    networks:
-      - ollama-network
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:9292/"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 40s
-
-networks:
-  ollama-network:
-    driver: bridge
