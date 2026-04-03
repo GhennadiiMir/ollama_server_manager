@@ -543,10 +543,12 @@
         if (!response.ok) throw new Error('Delete failed');
 
         await fetchServerModels(serverUrl);
+        renderTable();
       } catch (error) {
         console.error('Error deleting model:', error);
         alert(`Error deleting model: ${error.message}`);
-        renderTable();
+        buttonElement.disabled = false;
+        buttonElement.innerHTML = 'Remove';
       }
     }
 
