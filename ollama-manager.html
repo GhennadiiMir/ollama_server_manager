@@ -488,7 +488,7 @@
       }
     }
 
-    // Pull a model to a server
+    // Pull a model to a server (runs as a background job — safe to navigate away)
     async function pullModel(serverUrl, modelName, buttonElement) {
       buttonElement.disabled = true;
       buttonElement.classList.add('status-loading');
@@ -496,46 +496,44 @@
       buttonElement.innerHTML = '<span class="loading"></span>';
 
       try {
-        const response = await fetch('/api/proxy/stream', {
+        const response = await fetch('/api/pull', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            server_url: serverUrl,
-            endpoint: '/api/pull',
-            body: { name: modelName }
-          })
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ server_url: serverUrl, model_name: modelName })
         });
 
-        if (!response.ok) throw new Error('Pull failed');
+        if (!response.ok) throw new Error('Failed to start pull');
 
-        // Read the streaming response
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          const chunk = decoder.decode(value);
-          const lines = chunk.split('\n').filter(line => line.trim());
-
-          for (const line of lines) {
-            try {
-              const data = JSON.parse(line);
-              if (data.status) {
-                buttonElement.textContent = data.status.substring(0, 20);
-              }
-            } catch (e) {
-              // Ignore JSON parse errors
-            }
-          }
+        const { job_id, resumed } = await response.json();
+        if (resumed) {
+          console.log(`Attaching to existing pull job ${job_id} for ${modelName} on ${serverUrl}`);
         }
 
-        await fetchServerModels(serverUrl);
+        const poll = setInterval(async () => {
+          try {
+            const statusRes = await fetch(`/api/pull/${job_id}`);
+            const job = await statusRes.json();
+
+            if (job.status === 'pulling') {
+              const label = (job.progress || '…').substring(0, 28);
+              buttonElement.innerHTML = `<span class="loading"></span> ${label}`;
+            } else if (job.status === 'done') {
+              clearInterval(poll);
+              await fetchServerModels(serverUrl);
+              renderTable();
+            } else if (job.status === 'error') {
+              clearInterval(poll);
+              alert(`Error pulling model: ${job.error}`);
+              renderTable();
+            }
+          } catch (e) {
+            clearInterval(poll);
+            renderTable();
+          }
+        }, 1000);
+
       } catch (error) {
-        console.error('Error pulling model:', error);
+        console.error('Error starting pull:', error);
         alert(`Error pulling model: ${error.message}`);
         renderTable();
       }

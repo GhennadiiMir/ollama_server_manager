@@ -8,7 +8,7 @@ A streamlined web interface for managing Ollama models across multiple servers. 
 
 - **Multi-Server Management**: Connect and manage multiple Ollama servers from one interface
 - **Unified Model View**: See all models across all servers in a single table
-- **One-Click Operations**: Pull, remove, and manage models with simple button clicks
+- **One-Click Operations**: Pull, remove, and manage models with simple button clicks; pulls run as background jobs on the server — safe to navigate away or refresh mid-pull
 - **Real-Time Discovery**: Automatically discover installed models on your servers
 - **Persistent Configuration**: Your server list is saved locally for convenience
 - **CORS-Free**: Built-in proxy eliminates browser CORS restrictions
