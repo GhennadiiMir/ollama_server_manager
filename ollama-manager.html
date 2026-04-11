@@ -675,7 +675,7 @@
         const serverName = server.replace('http://', '').replace('https://', '');
         headerHTML += `<th>${serverName}</th>`;
       });
-      headerHTML += '<th>Actions</th></tr>';
+      headerHTML += '<th style="text-align:right">Actions</th></tr>';
       tableHeader.innerHTML = headerHTML;
 
       // Build body - sort models by name before rendering
@@ -698,7 +698,8 @@
           bodyHTML += '</td>';
         });
 
-        bodyHTML += `<td><button class="btn-danger btn-small" onclick="removeModel('${model}')">Delete from List</button></td>`;
+        const presentOnAnyServer = servers.some(s => serverModels[s] && serverModels[s].includes(model));
+        bodyHTML += `<td style="text-align:right">${!presentOnAnyServer ? `<button class="btn-danger btn-small" onclick="removeModel('${model}')">Delete from List</button>` : ''}</td>`;
         bodyHTML += '</tr>';
       });
 
