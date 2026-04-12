@@ -140,6 +140,14 @@ The container runs with `network_mode: host`, sharing the host machine's full ne
 - Check firewall settings for remote servers
 - If hostnames don't resolve, make sure they are resolvable on the **host machine** running the manager (not just in the browser) — the proxy inherits the host's DNS
 
+**Hostnames resolve on the host but not inside the container (Linux):**
+
+Some Ubuntu/Debian systems ship with `mdns4_minimal [NOTFOUND=return]` in `/etc/nsswitch.conf`. The `[NOTFOUND=return]` clause stops name resolution before it reaches DNS, breaking short hostnames (Tailscale names, VPN hostnames, custom `/etc/hosts` entries) inside the container even with `network_mode: host`. The `Dockerfile` fixes this automatically by switching to `files dns`, but if you are running the container on an older image you may need to rebuild:
+
+```bash
+docker compose up -d --build
+```
+
 **Models Not Appearing:**
 
 - Click "Refresh All" to force a rescan

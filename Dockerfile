@@ -10,6 +10,13 @@ RUN apt-get update && apt-get install -y \
   curl \
   && rm -rf /var/lib/apt/lists/*
 
+# The Debian base image ships with `mdns4_minimal [NOTFOUND=return]` in
+# nsswitch.conf, which prevents short hostnames (Tailscale, VPN, mDNS, custom
+# /etc/hosts entries) from ever reaching the system DNS resolver. With
+# network_mode: host the container shares the host's resolver (127.0.0.53), so
+# simply switching to `files dns` makes any name the host can resolve work here.
+RUN sed -i 's/^hosts:.*/hosts: files dns/' /etc/nsswitch.conf
+
 # Copy Gemfile and Gemfile.lock
 COPY Gemfile Gemfile.lock ./
 
