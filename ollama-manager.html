@@ -111,6 +111,13 @@
       margin-left: 8px;
     }
 
+    .version-uptodate {
+      color: #27ae60;
+      font-style: normal;
+      margin-left: 4px;
+      font-size: 11px;
+    }
+
     .server-info {
       display: flex;
       flex-direction: column;
@@ -710,7 +717,9 @@
         const version = serverVersions[server] || 'Loading...';
         const updateBadge = isUpdateAvailable(version)
           ? `<span class="update-badge" onclick="showUpdateModal('${server}')" title="Latest: v${latestOllamaVersion}">⬆ v${latestOllamaVersion} available</span>`
-          : '';
+          : (latestOllamaVersion && version !== 'Loading...' && version !== 'Offline' && version !== 'Unknown'
+              ? `<span class="version-uptodate" title="Up to date">✓</span>`
+              : '');
         return `
                 <div class="server-item">
                     <div class="server-info">
