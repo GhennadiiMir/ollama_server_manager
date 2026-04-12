@@ -10,6 +10,11 @@ PULL_JOBS = {}
 ACTIVE_PULLS = {}  # (server_url, model_name) -> job_id for deduplication
 PULL_JOBS_MUTEX = Mutex.new
 
+# Cache for the latest Ollama release fetched from GitHub API.
+# Refreshed at most once per hour to avoid hammering the API.
+LATEST_OLLAMA_CACHE = { version: nil, fetched_at: nil }
+LATEST_OLLAMA_MUTEX = Mutex.new
+
 def store_job(job_id, attrs)
   PULL_JOBS_MUTEX.synchronize { PULL_JOBS[job_id].merge!(attrs) }
 end
@@ -43,6 +48,40 @@ class OllamaManagerApp < Roda
 
     # Proxy API requests to Ollama servers
     r.on 'api' do
+
+      # GET /api/latest-ollama-version
+      # Returns the latest Ollama release version from GitHub, cached for 1 hour.
+      # No user input is used — the GitHub URL is hardcoded.
+      r.get 'latest-ollama-version' do
+        cached = LATEST_OLLAMA_MUTEX.synchronize do
+          c = LATEST_OLLAMA_CACHE
+          c[:version] if c[:version] && c[:fetched_at] && (Time.now - c[:fetched_at]) < 3600
+        end
+
+        if cached
+          { version: cached }
+        else
+          begin
+            uri = URI.parse('https://api.github.com/repos/ollama/ollama/releases/latest')
+            http = Net::HTTP.new(uri.host, uri.port)
+            http.use_ssl = true
+            http.read_timeout = 10
+            req = Net::HTTP::Get.new(uri.request_uri)
+            req['User-Agent'] = 'ollama-server-manager'
+            res = http.request(req)
+            data = JSON.parse(res.body)
+            version = data['tag_name']&.sub(/\Av/, '') || 'unknown'
+            LATEST_OLLAMA_MUTEX.synchronize do
+              LATEST_OLLAMA_CACHE[:version] = version
+              LATEST_OLLAMA_CACHE[:fetched_at] = Time.now
+            end
+            { version: version }
+          rescue => e
+            response.status = 503
+            { error: e.message }
+          end
+        end
+      end
 
       # Background pull job endpoints
       r.on 'pull' do

@@ -331,6 +331,121 @@
       color: #3498db;
       text-decoration: underline;
     }
+
+    /* Update available badge shown next to server version */
+    .update-badge {
+      display: inline-block;
+      background: #e67e22;
+      color: white;
+      font-size: 11px;
+      border-radius: 4px;
+      padding: 2px 7px;
+      margin-left: 7px;
+      cursor: pointer;
+      font-style: normal;
+      vertical-align: middle;
+      white-space: nowrap;
+    }
+
+    .update-badge:hover {
+      background: #d35400;
+    }
+
+    /* Update modal */
+    .modal-overlay {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.5);
+      z-index: 1000;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .modal-overlay.active {
+      display: flex;
+    }
+
+    .modal {
+      background: white;
+      border-radius: 8px;
+      padding: 30px;
+      max-width: 640px;
+      width: 90%;
+      max-height: 82vh;
+      overflow-y: auto;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    .modal h3 {
+      margin-bottom: 8px;
+      color: #2c3e50;
+    }
+
+    .modal-close {
+      float: right;
+      background: none;
+      border: none;
+      font-size: 22px;
+      cursor: pointer;
+      color: #7f8c8d;
+      padding: 0;
+      line-height: 1;
+    }
+
+    .modal-close:hover {
+      color: #2c3e50;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .update-section {
+      margin-top: 18px;
+    }
+
+    .update-section h4 {
+      margin-bottom: 6px;
+      color: #34495e;
+      font-size: 13px;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .code-block {
+      background: #2c3e50;
+      color: #ecf0f1;
+      padding: 12px 14px;
+      border-radius: 5px;
+      font-family: monospace;
+      font-size: 13px;
+      white-space: pre-wrap;
+      word-break: break-all;
+      position: relative;
+      padding-right: 70px;
+    }
+
+    .copy-btn {
+      position: absolute;
+      top: 8px;
+      right: 8px;
+      background: #3498db;
+      color: white;
+      border: none;
+      border-radius: 3px;
+      padding: 3px 8px;
+      font-size: 11px;
+      cursor: pointer;
+      font-weight: 500;
+    }
+
+    .copy-btn:hover {
+      background: #2980b9;
+      transform: none;
+      box-shadow: none;
+    }
   </style>
 </head>
 
@@ -389,12 +504,121 @@
     </div>
   </div>
 
+  <!-- Update command modal -->
+  <div class="modal-overlay" id="updateModal" onclick="if(event.target===this)closeUpdateModal()">
+    <div class="modal">
+      <button class="modal-close" onclick="closeUpdateModal()" aria-label="Close">×</button>
+      <h3>🚀 Ollama Update Available</h3>
+      <p id="updateVersionInfo" style="color:#7f8c8d;margin-bottom:4px;font-size:14px"></p>
+      <p style="color:#7f8c8d;font-size:13px">
+        Choose the command matching your installation method, copy it, and run it on the host machine.
+      </p>
+
+      <div class="update-section">
+        <h4>Docker — NVIDIA GPU</h4>
+        <div class="code-block" id="cmdDockerNvidia">
+          <button class="copy-btn" onclick="copyCmd('cmdDockerNvidia')">Copy</button>docker pull ollama/ollama:latest &amp;&amp; docker rm -f ollama &amp;&amp; docker run -d --runtime=nvidia -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama:latest</div>
+      </div>
+
+      <div class="update-section">
+        <h4>Docker — AMD GPU (ROCm)</h4>
+        <div class="code-block" id="cmdDockerAmd">
+          <button class="copy-btn" onclick="copyCmd('cmdDockerAmd')">Copy</button>docker pull ollama/ollama:rocm &amp;&amp; docker rm -f ollama &amp;&amp; docker run -d --device /dev/kfd --device /dev/dri -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama:rocm</div>
+      </div>
+
+      <div class="update-section">
+        <h4>Docker — CPU only</h4>
+        <div class="code-block" id="cmdDockerCpu">
+          <button class="copy-btn" onclick="copyCmd('cmdDockerCpu')">Copy</button>docker pull ollama/ollama:latest &amp;&amp; docker rm -f ollama &amp;&amp; docker run -d -v ollama:/root/.ollama -p 11434:11434 --name ollama ollama/ollama:latest</div>
+      </div>
+
+      <div class="update-section">
+        <h4>Linux — native install</h4>
+        <div class="code-block" id="cmdLinux">
+          <button class="copy-btn" onclick="copyCmd('cmdLinux')">Copy</button>curl -fsSL https://ollama.com/install.sh | sh</div>
+      </div>
+
+      <div class="update-section">
+        <h4>macOS — Homebrew</h4>
+        <div class="code-block" id="cmdMac">
+          <button class="copy-btn" onclick="copyCmd('cmdMac')">Copy</button>brew upgrade ollama</div>
+      </div>
+
+      <p style="color:#7f8c8d;font-size:12px;margin-top:20px;line-height:1.5">
+        ⚠ The Docker commands use the container name <code>ollama</code> and volume name <code>ollama</code>.
+        Adjust these, the port, and GPU flags to match your setup.
+        The container will be offline briefly during recreation.
+        <a href="https://github.com/ollama/ollama/releases" target="_blank" rel="noopener noreferrer"
+          style="color:#3498db;margin-left:4px">Release notes ↗</a>
+      </p>
+    </div>
+  </div>
+
   <script>
     // Data storage
     let servers = [];
     let models = [];
     let serverModels = {}; // stores installed models per server
     let serverVersions = {}; // stores Ollama version per server
+    let latestOllamaVersion = null; // latest version fetched from GitHub releases
+
+    // Fetch latest Ollama release version from our backend (cached server-side 1h)
+    async function fetchLatestOllamaVersion() {
+      try {
+        const res = await fetch('/api/latest-ollama-version');
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.version && data.version !== 'unknown') {
+          latestOllamaVersion = data.version;
+        }
+      } catch (e) {
+        console.error('Failed to fetch latest Ollama version:', e);
+      }
+    }
+
+    // Compare semver strings a and b; returns -1/0/1
+    function compareVersions(a, b) {
+      const pa = a.split('.').map(Number);
+      const pb = b.split('.').map(Number);
+      for (let i = 0; i < Math.max(pa.length, pb.length); i++) {
+        const diff = (pa[i] || 0) - (pb[i] || 0);
+        if (diff !== 0) return diff > 0 ? 1 : -1;
+      }
+      return 0;
+    }
+
+    function isUpdateAvailable(serverVersion) {
+      if (!latestOllamaVersion || !serverVersion ||
+          serverVersion === 'Offline' || serverVersion === 'Unknown' ||
+          serverVersion === 'Loading...') return false;
+      return compareVersions(latestOllamaVersion, serverVersion) > 0;
+    }
+
+    function showUpdateModal(server) {
+      const current = serverVersions[server] || '?';
+      document.getElementById('updateVersionInfo').textContent =
+        `Running v${current}  →  Latest v${latestOllamaVersion || '?'}`;
+      document.getElementById('updateModal').classList.add('active');
+    }
+
+    function closeUpdateModal() {
+      document.getElementById('updateModal').classList.remove('active');
+    }
+
+    // Copy the text content of a code-block element to the clipboard
+    function copyCmd(elementId) {
+      const el = document.getElementById(elementId);
+      const btn = el.querySelector('.copy-btn');
+      // Walk child nodes and collect text from everything except the button,
+      // so the button label never contaminates the copied command.
+      let text = '';
+      el.childNodes.forEach(node => { if (node !== btn) text += node.textContent; });
+      navigator.clipboard.writeText(text.trim()).then(() => {
+        const orig = btn.textContent;
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = orig; }, 1500);
+      });
+    }
 
     // Load data from localStorage on startup
     function loadData() {
@@ -484,11 +708,14 @@
       const serverList = document.getElementById('serverList');
       serverList.innerHTML = servers.map(server => {
         const version = serverVersions[server] || 'Loading...';
+        const updateBadge = isUpdateAvailable(version)
+          ? `<span class="update-badge" onclick="showUpdateModal('${server}')" title="Latest: v${latestOllamaVersion}">⬆ v${latestOllamaVersion} available</span>`
+          : '';
         return `
                 <div class="server-item">
                     <div class="server-info">
                         <span class="server-url">${server}</span>
-                        <span class="server-version">Ollama v${version}</span>
+                        <span class="server-version">Ollama v${version}${updateBadge}</span>
                     </div>
                     <button class="btn-danger btn-small" onclick="removeServer('${server}')">Remove</button>
                 </div>
@@ -717,7 +944,8 @@
       const versionPromises = servers.map(server => fetchServerVersion(server));
       const [modelResults, versionResults] = await Promise.all([
         Promise.all(modelPromises),
-        Promise.all(versionPromises)
+        Promise.all(versionPromises),
+        fetchLatestOllamaVersion()
       ]);
 
       console.log('Refresh complete. Models:', modelResults, 'Versions:', versionResults);
