@@ -2,7 +2,7 @@
 
 A streamlined web interface for managing Ollama models across multiple servers. Perfect for teams running distributed Ollama instances or managing models on different machines.
 
-![Ollama Server Manager Interface](assets/screenshot-2026-04-03.png)
+![Ollama Server Manager Interface](assets/screenshot-2026-04-12.png)
 
 ## ✨ Features
 
