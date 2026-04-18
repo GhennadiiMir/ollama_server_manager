@@ -339,6 +339,58 @@
       text-decoration: underline;
     }
 
+    .model-timestamp-row {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      margin-bottom: 4px;
+    }
+
+    .model-timestamp {
+      font-size: 11px;
+      color: #7f8c8d;
+      white-space: nowrap;
+    }
+
+    .btn-repull {
+      padding: 1px 5px;
+      font-size: 11px;
+      border: 1px solid #bdc3c7;
+      border-radius: 3px;
+      background: transparent;
+      color: #7f8c8d;
+      cursor: pointer;
+      line-height: 1.4;
+      transition: all 0.15s;
+      flex-shrink: 0;
+    }
+
+    .btn-repull:hover {
+      background: #3498db;
+      border-color: #3498db;
+      color: white;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-repull:disabled {
+      opacity: 0.6;
+      cursor: default;
+      pointer-events: none;
+    }
+
+    .model-age-fresh {
+      color: #27ae60;
+    }
+
+    .model-age-moderate {
+      color: #e67e22;
+    }
+
+    .model-age-stale {
+      color: #e74c3c;
+    }
+
     /* Update available badge shown next to server version */
     .update-badge {
       display: inline-block;
@@ -750,19 +802,20 @@
 
         const data = await response.json();
         console.log(`Received data from ${serverUrl}:`, data);
-        const installedModels = data.models ? data.models.map(m => m.name) : [];
 
-        serverModels[serverUrl] = installedModels;
-
-        // Add discovered models to the list if not already present
+        // Store full model metadata keyed by name
+        const modelsData = {};
         let newModelsFound = 0;
-        installedModels.forEach(modelName => {
-          if (!models.includes(modelName)) {
-            models.push(modelName);
+        (data.models || []).forEach(m => {
+          modelsData[m.name] = { modified_at: m.modified_at, size: m.size };
+          if (!models.includes(m.name)) {
+            models.push(m.name);
             newModelsFound++;
-            console.log(`Added new model: ${modelName}`);
+            console.log(`Added new model: ${m.name}`);
           }
         });
+
+        serverModels[serverUrl] = modelsData;
 
         if (newModelsFound > 0) {
           console.log(`Found ${newModelsFound} new models from ${serverUrl}`);
@@ -772,8 +825,55 @@
         return true;
       } catch (error) {
         console.error(`Error fetching models from ${serverUrl}:`, error);
-        serverModels[serverUrl] = [];
+        serverModels[serverUrl] = {};
         return false;
+      }
+    }
+
+    // Re-pull an already-installed model (update in-place without deleting first)
+    async function repullModel(serverUrl, modelName, btn) {
+      btn.disabled = true;
+      const origHTML = btn.innerHTML;
+      btn.innerHTML = '<span class="loading" style="width:10px;height:10px;border-width:1.5px"></span>';
+
+      try {
+        const response = await fetch('/api/pull', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ server_url: serverUrl, model_name: modelName })
+        });
+
+        if (!response.ok) throw new Error('Failed to start pull');
+
+        const { job_id } = await response.json();
+
+        const poll = setInterval(async () => {
+          try {
+            const statusRes = await fetch(`/api/pull/${job_id}`);
+            const job = await statusRes.json();
+
+            if (job.status === 'done') {
+              clearInterval(poll);
+              await fetchServerModels(serverUrl);
+              renderTable();
+            } else if (job.status === 'error') {
+              clearInterval(poll);
+              alert(`Error re-pulling model: ${job.error}`);
+              btn.disabled = false;
+              btn.innerHTML = origHTML;
+            }
+          } catch (e) {
+            clearInterval(poll);
+            btn.disabled = false;
+            btn.innerHTML = origHTML;
+          }
+        }, 1000);
+
+      } catch (error) {
+        console.error('Error starting re-pull:', error);
+        alert(`Error re-pulling model: ${error.message}`);
+        btn.disabled = false;
+        btn.innerHTML = origHTML;
       }
     }
 
@@ -872,6 +972,35 @@
       return `https://ollama.com/library/${baseModel}`;
     }
 
+    // Format a model's modified_at date as a relative age string
+    function formatModelAge(modifiedAt) {
+      if (!modifiedAt) return '';
+      const date = new Date(modifiedAt);
+      const diffMs = Date.now() - date.getTime();
+      const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+      if (diffDays === 0) return 'pulled today';
+      if (diffDays === 1) return 'pulled yesterday';
+      if (diffDays < 7) return `pulled ${diffDays}d ago`;
+      if (diffDays < 30) return `pulled ${Math.floor(diffDays / 7)}w ago`;
+      if (diffDays < 365) return `pulled ${Math.floor(diffDays / 30)}mo ago`;
+      return `pulled ${Math.floor(diffDays / 365)}y ago`;
+    }
+
+    // Return a CSS class based on how stale a model is
+    function getAgeClass(modifiedAt) {
+      if (!modifiedAt) return '';
+      const diffDays = Math.floor((Date.now() - new Date(modifiedAt).getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays < 14) return 'model-age-fresh';
+      if (diffDays < 60) return 'model-age-moderate';
+      return 'model-age-stale';
+    }
+
+    // Format a full ISO date for tooltip display
+    function formatFullDate(modifiedAt) {
+      if (!modifiedAt) return '';
+      return new Date(modifiedAt).toLocaleString();
+    }
+
     // Fetch Ollama version from a server
     async function fetchServerVersion(serverUrl) {
       try {
@@ -922,10 +1051,16 @@
         bodyHTML += `<tr><td class="model-name"><a href="${ollamaUrl}" target="_blank">${model}</a></td>`;
 
         servers.forEach(server => {
-          const installed = serverModels[server] && serverModels[server].includes(model);
+          const serverData = serverModels[server] || {};
+          const modelMeta = serverData[model];
+          const installed = !!modelMeta;
           bodyHTML += '<td>';
 
           if (installed) {
+            const ageLabel = formatModelAge(modelMeta.modified_at);
+            const ageClass = getAgeClass(modelMeta.modified_at);
+            const fullDate = formatFullDate(modelMeta.modified_at);
+            bodyHTML += `<div class="model-timestamp-row"><span class="model-timestamp ${ageClass}" title="${fullDate}">${ageLabel}</span><button class="btn-repull" onclick="repullModel('${server}', '${model}', this)" title="Re-pull to update">↺</button></div>`;
             bodyHTML += `<button class="btn-model-status btn-model-present" onclick="deleteModel('${server}', '${model}', this)"><span class="status-default">✓ Pulled &nbsp;×</span><span class="status-hover">Remove</span></button>`;
           } else {
             bodyHTML += `<button class="btn-model-status btn-model-absent" onclick="pullModel('${server}', '${model}', this)"><span class="status-default">↓ Not pulled</span><span class="status-hover">Pull</span></button>`;
@@ -934,7 +1069,7 @@
           bodyHTML += '</td>';
         });
 
-        const presentOnAnyServer = servers.some(s => serverModels[s] && serverModels[s].includes(model));
+        const presentOnAnyServer = servers.some(s => serverModels[s] && serverModels[s][model]);
         bodyHTML += `<td style="text-align:right">${!presentOnAnyServer ? `<button class="btn-danger btn-small" onclick="removeModel('${model}')">Delete from List</button>` : ''}</td>`;
         bodyHTML += '</tr>';
       });
